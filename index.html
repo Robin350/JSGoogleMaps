@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="floating-panel">
+    <b>Select Location: </b>
+    <form id="distance_form">
+        <label>start: </label>
+        <input id="start" type="text" name="start"/>
+    </form>
+    
+    <div class="botones">
+      <button onclick="getTime()">Empezar</button>
+      <button onclick="endTime()">Terminar</button>
+    </div>
+    <p id="lejano"></p>
+    <p id="destino"></p> 
+    <p id="tiempo"></p> 
+    </div>
+    
+    <div id="map"></div>
+    <script>
+      var tiempoestimado;
+      var tiempotardado;
+      var starttime,endtime;
+      function getTime(){
+        starttime=Date.now();
+      }
+      function endTime(){
+        endtime= Date.now();
+        var elapsed = endtime - starttime; // time in milliseconds
+        var difference = new Date(elapsed);
+        var diff_hours = difference.getHours() -1;
+        var diff_mins = difference.getMinutes();
+        var diff_secs = difference.getSeconds();
+        
+        document.getElementById('distancia').innerHTML="Has tardado: " + diff_hours + " horas, " + diff_mins + " minutos, " + diff_secs + " segundos.";
+        tiempotardado = (diff_hours * 3600 + diff_mins * 60 + diff_secs);
+        
+        var diff_tiempos = (tiempoestimado - tiempotardado);
+        
+        if(diff_tiempos < -(tiempoestimado * 0.1)){
+          document.getElementById('tiempo').innerHTML="Tiempo Tardado: " + diff_mins + " mins. Has obtenido rango bronce, ¡Debes mejorar!";
+        }
+        else if(diff_tiempos > tiempoestimado * 0.1){
+          document.getElementById('tiempo').innerHTML="Tiempo Tardado: " + diff_mins + " mins. Has obtenido rango oro. ¡Enhorabuena!";
+        }
+        else{
+          document.getElementById('tiempo').innerHTML="Tiempo Tardado: " + diff_mins + " mins. Has obtenido rango plata. ¡Estas en forma!";
+        }
+      }
+      
+      var map;
+      
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+      
+      function initMap() {
+        var directionsService = new google.maps.DirectionsService;
+        var directionsDisplay = new google.maps.DirectionsRenderer;
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 37.1773363, lng: -3.5985570999999999936},
+          zoom: 8
+        });
+        
+        directionsDisplay.setMap(map);
+
+        var onChangeHandler = function() {
+          calculateAndDisplayRoute(directionsService, directionsDisplay);
+          
+        };
+        document.getElementById('start').addEventListener('change', onChangeHandler);
+        //document.getElementById('distancia').addEventListener('change', onChangeHandler);
+      }
+      
+        var destinos = ["ETSIIT, Granada, Spain","Mirador de San Nicolas, Granada, Spain","Alhambra, Granada, Spain","Catedral, Granada, Spain","Plaza de toros, Granada, Spain"];
+        var longer = -1;
+        var lenght_longer = -1;
+        var current = -1;
+        var lenght_current = -1;
+      
+      async function calculateAndDisplayRoute(directionsService, directionsDisplay) {
+        
+        for (i=0; i < destinos.length; i++)
+        {
+          current = i;
+          directionsService.route({
+          origin: document.getElementById('start').value,
+          destination: destinos[current],
+          travelMode: 'WALKING'
+        }, function(response, status) {
+          if (status === 'OK') {
+            
+            lenght_current = response['routes'][0].legs[0].distance.value;
+            current = i;
+            //document.getElementById('distancia').innerHTML="Distancia: " + response['routes'][0].legs[0].distance.text;
+            document.getElementById('tiempo').innerHTML="Tiempo Estimado: " + response['routes'][0].legs[0].duration.text;
+            tiempoestimado = response['routes'][0].legs[0].duration.value;
+            directionsDisplay.setDirections(response);
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+            
+            
+            if (lenght_longer < lenght_current)
+          {
+            longer = current;
+            lenght_longer = lenght_current;
+          }
+        });
+          await sleep(1000);
+        }
+        directionsService.route({
+          origin: document.getElementById('start').value,
+          destination: destinos[longer],
+          travelMode: 'WALKING'
+        }, function(response, status) {
+          if (status === 'OK') {
+            directionsDisplay.setDirections(response);
+            document.getElementById('lejano').innerHTML="Distancia: " + response['routes'][0].legs[0].distance.text;
+            document.getElementById('destino').innerHTML="Destino mas lejano: " + destinos[longer];
+            document.getElementById('tiempo').innerHTML="Tiempo Estimado: " + response['routes'][0].legs[0].duration.text;
+            tiempoestimado = response['routes'][0].legs[0].duration.value;
+            
+            
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+      }
+    
+    </script> 
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBH1O0ZD73ISiGY-TajsyNABKQ6idR1bq0&callback=initMap"
+    async defer></script>
+  </body>
+</html>
